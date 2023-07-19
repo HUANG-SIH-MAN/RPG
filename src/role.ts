@@ -1,6 +1,14 @@
 import { State, NormalState } from "./state";
 import { Troop } from "./game";
-import { NormalAttackStrategy, SkillStrategy } from "./skill";
+import {
+  SkillStrategy,
+  NormalAttackStrategy,
+  WaterballStrategy,
+  FireballStrategy,
+  SelfHealingStrategy,
+  PetrochemicalStrategy,
+  PoisonStrategy,
+} from "./skill";
 import { ActionCommand } from "./command";
 import readline from "./readline";
 
@@ -26,8 +34,18 @@ export abstract class Role {
     this._str = Math.floor(Math.random() * 50) + 10;
     this._state = new NormalState(this);
     this.command = new ActionCommand();
+    this.setActionCommand();
     this._troop = troop;
     this._troop.addRole(this);
+  }
+
+  protected setActionCommand() {
+    this.command.setCommand(0, new NormalAttackStrategy(this));
+    this.command.setCommand(1, new WaterballStrategy(this));
+    this.command.setCommand(2, new FireballStrategy(this));
+    this.command.setCommand(3, new SelfHealingStrategy(this));
+    this.command.setCommand(4, new PetrochemicalStrategy(this));
+    this.command.setCommand(5, new PoisonStrategy(this));
   }
 
   public startRround() {
@@ -55,20 +73,25 @@ export abstract class Role {
 
   public beAttacked(harm: number) {
     this.addHp(-harm);
-
-    if (this._hp <= 0) {
-      this.die();
-    }
     return;
   }
 
   public addHp(hp: number) {
     this._hp += hp;
+
+    if (this._hp <= 0) {
+      this.die();
+    }
+
     return;
   }
 
   private die() {
     console.log(`${this.showName} 死亡。`);
+  }
+
+  public changeState(state: State) {
+    this._state = state;
   }
 
   get name() {
@@ -101,11 +124,6 @@ export abstract class Role {
 }
 
 export class Hero extends Role {
-  constructor(name: string, troop: Troop) {
-    super(name, troop);
-    this.command.setCommand(0, new NormalAttackStrategy(this));
-  }
-
   public async getActionChoose(): Promise<SkillStrategy> {
     const choose = this.command.getSkillChoose();
     const action = await readline.heroAction(choose);
@@ -151,11 +169,6 @@ export class Hero extends Role {
 
 export class AI extends Role {
   private seed: number = 0;
-
-  constructor(name: string, troop: Troop) {
-    super(name, troop);
-    this.command.setCommand(0, new NormalAttackStrategy(this));
-  }
 
   public async getActionChoose(): Promise<SkillStrategy> {
     const action = this.seed % this.command.getSkillAmount();

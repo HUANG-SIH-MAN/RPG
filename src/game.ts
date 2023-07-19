@@ -5,13 +5,12 @@ export class Game {
   private hero: Hero;
 
   constructor() {
-    const troop_1 = new Troop("軍隊１", 1, this);
-    const troop_2 = new Troop("軍隊２", 2, this);
-    this.troops.push(troop_1, troop_2);
+    const troop_1 = new Troop("軍隊１", this);
+    const troop_2 = new Troop("軍隊２", this);
 
     this.hero = new Hero("英雄", troop_1);
     new AI("AI 1號", troop_2);
-    new AI("AI 2號", troop_2);
+    // new AI("AI 2號", troop_1);
   }
 
   public async startRound(): Promise<void> {
@@ -32,6 +31,11 @@ export class Game {
     return this.troops.filter((troop) => troop !== self_troop);
   }
 
+  public addTroop(troop: Troop) {
+    this.troops.push(troop);
+    return;
+  }
+
   private isGameOver() {
     if (this.hero.hp <= 0) {
       console.log("你失敗了！");
@@ -45,18 +49,23 @@ export class Game {
 
     return false;
   }
+
+  get troopAmount() {
+    return this.troops.length;
+  }
 }
 
 export class Troop {
   private _id: number;
   private _name: string;
   private roles: Role[] = [];
-  private game: Game;
+  private _game: Game;
 
-  constructor(name: string, id: number, game: Game) {
+  constructor(name: string, game: Game) {
     this._name = name;
-    this._id = id;
-    this.game = game;
+    this._id = game.troopAmount + 1;
+    this._game = game;
+    game.addTroop(this);
   }
 
   public addRole(role: Role) {
@@ -70,7 +79,7 @@ export class Troop {
 
   public getAllEnemy() {
     const result: Role[] = [];
-    const enemy_troops = this.game.getEnemyTroop(this);
+    const enemy_troops = this._game.getEnemyTroop(this);
     enemy_troops.forEach((troop) => {
       result.push(...troop.getAliveRole());
     });
@@ -83,5 +92,9 @@ export class Troop {
 
   get id() {
     return this._id;
+  }
+
+  get game() {
+    return this._game;
   }
 }

@@ -3,15 +3,21 @@ import { Role } from "./role";
 export abstract class State {
   protected abstract _name: string;
   protected role: Role;
+  protected abstract affect_round: number;
+  protected state_round: number;
 
-  constructor(role: Role) {
+  constructor(role: Role, state_round: number = 1) {
     this.role = role;
+    this.state_round = state_round;
   }
 
   public startRound() {
-    console.log(
-      `輪到 ${this.role.showName} (HP: ${this.role.hp}, MP: ${this.role.mp}, STR: ${this.role.str}, State: ${this.role.state.name})。`
-    );
+    this.state_round++;
+    if (this.state_round > this.affect_round) {
+      this.role.changeState(new NormalState(this.role));
+    }
+
+    this.consoleRoleInfo();
     return;
   }
 
@@ -32,6 +38,13 @@ export abstract class State {
     return;
   }
 
+  protected consoleRoleInfo() {
+    console.log(
+      `輪到 ${this.role.showName} (HP: ${this.role.hp}, MP: ${this.role.mp}, STR: ${this.role.str}, State: ${this.role.state.name})。`
+    );
+    return;
+  }
+
   get name() {
     return this._name;
   }
@@ -39,4 +52,38 @@ export abstract class State {
 
 export class NormalState extends State {
   protected _name: string = "正常";
+  protected affect_round: number = 999;
+}
+
+export class PetrochemicaState extends State {
+  protected _name: string = "石化";
+  protected affect_round: number = 3;
+
+  async action() {
+    return;
+  }
+}
+
+export class PoisonedState extends State {
+  protected _name: string = "中毒";
+  protected affect_round: number = 3;
+  protected harm: number = 30;
+
+  public startRound() {
+    this.state_round++;
+
+    if (this.state_round > this.affect_round) {
+      this.role.changeState(new NormalState(this.role));
+      this.consoleRoleInfo();
+      return;
+    }
+
+    this.consoleRoleInfo();
+    this.role.addHp(-this.harm);
+    if (this.role.hp <= 0) {
+      this.action = async () => {};
+    }
+
+    return;
+  }
 }

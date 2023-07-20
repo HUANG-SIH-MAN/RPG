@@ -9,10 +9,13 @@ export class Game {
     const troop_2 = new Troop("軍隊２", this);
 
     this.hero = new Hero("英雄", troop_1);
-    new AI("AI 1號", troop_2);
-    // new AI("AI 2號", troop_1);
+    new AI("AI 1號", troop_1);
+    new AI("AI 2號", troop_1);
+    new AI("AI 3號", troop_2);
+    new AI("AI 4號", troop_2);
   }
 
+  // FIXME: 史萊姆不會在當回合行動
   public async startRound(): Promise<void> {
     for (const troop of this.troops) {
       const alive_roles = troop.getAliveRole();
@@ -75,6 +78,10 @@ export class Troop {
 
   public getAliveRole() {
     return this.roles.filter((role) => role.hp > 0);
+  }
+
+  public getAlly(role: Role) {
+    return this.getAliveRole().filter((ally) => ally !== role);
   }
 
   public getAllEnemy() {

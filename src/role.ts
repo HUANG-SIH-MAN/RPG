@@ -8,18 +8,24 @@ import {
   SelfHealingStrategy,
   PetrochemicalStrategy,
   PoisonStrategy,
+  SummonStrategy,
+  SelfExplosionStrategy,
+  CheerupStrategy,
+  CurseStrategy,
+  OnePunchStrategy,
 } from "./skill";
 import { ActionCommand } from "./command";
 import readline from "./readline";
 
 export abstract class Role {
   private _name: string;
-  private _hp: number;
-  private _mp: number;
-  private _str: number;
+  protected _hp: number;
+  protected _mp: number;
+  protected _str: number;
   private _state: State;
   private _troop: Troop;
   protected command: ActionCommand;
+  private cursers: Set<Role> = new Set();
 
   abstract getActionChoose(): Promise<SkillStrategy>;
   abstract chooseTarget(
@@ -46,6 +52,11 @@ export abstract class Role {
     this.command.setCommand(3, new SelfHealingStrategy(this));
     this.command.setCommand(4, new PetrochemicalStrategy(this));
     this.command.setCommand(5, new PoisonStrategy(this));
+    this.command.setCommand(6, new SummonStrategy(this));
+    this.command.setCommand(7, new SelfExplosionStrategy(this));
+    this.command.setCommand(8, new CheerupStrategy(this));
+    this.command.setCommand(9, new CurseStrategy(this));
+    this.command.setCommand(10, new OnePunchStrategy(this));
   }
 
   public startRround() {
@@ -86,8 +97,19 @@ export abstract class Role {
     return;
   }
 
-  private die() {
+  public addCurser(curser: Role) {
+    this.cursers.add(curser);
+    return;
+  }
+
+  protected die() {
     console.log(`${this.showName} 死亡。`);
+
+    this.cursers.forEach((curser) => {
+      if (curser.hp > 0) {
+        curser.addHp(this._mp);
+      }
+    });
   }
 
   public changeState(state: State) {
@@ -128,6 +150,12 @@ export class Hero extends Role {
     const choose = this.command.getSkillChoose();
     const action = await readline.heroAction(choose);
     const skill = this.command.getSkill(action);
+
+    if (!skill) {
+      console.log("輸入錯誤，請重新選擇技能");
+      return await this.getActionChoose();
+    }
+
     if (skill.getMp() > this.mp) {
       console.log("你缺乏 MP，不能進行此行動。");
       return await this.getActionChoose();
@@ -194,6 +222,31 @@ export class AI extends Role {
 
     this.seed++;
     return result;
+  }
+}
+
+export class Slime extends AI {
+  private owner: Role;
+
+  constructor(name: string, troop: Troop, owner: Role) {
+    super(name, troop);
+    this._hp = 100;
+    this._mp = 0;
+    this._str = 50;
+    this.owner = owner;
+    this.setActionCommand();
+  }
+
+  protected setActionCommand() {
+    this.command.setCommand(0, new NormalAttackStrategy(this));
+  }
+
+  protected die() {
+    super.die();
+    if (this.owner.hp > 0) {
+      this.owner.addHp(30);
+    }
+    return;
   }
 }
 

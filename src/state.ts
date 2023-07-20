@@ -67,7 +67,7 @@ export class PetrochemicaState extends State {
 export class PoisonedState extends State {
   protected _name: string = "中毒";
   protected affect_round: number = 3;
-  protected harm: number = 30;
+  private harm: number = 30;
 
   public startRound() {
     this.state_round++;
@@ -84,6 +84,18 @@ export class PoisonedState extends State {
       this.action = async () => {};
     }
 
+    return;
+  }
+}
+
+export class CheerupState extends State {
+  protected _name: string = "受到鼓舞";
+  protected affect_round: number = 3;
+  private add_harm: number = 50;
+
+  public attack(target: Role[], harm: number) {
+    const total_harm = harm + this.add_harm;
+    super.attack(target, total_harm);
     return;
   }
 }

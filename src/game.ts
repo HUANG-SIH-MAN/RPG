@@ -9,24 +9,26 @@ export class Game {
     const troop_2 = new Troop("軍隊２", this);
 
     this.hero = new Hero("英雄", troop_1);
-    new AI("AI 1號", troop_1);
-    new AI("AI 2號", troop_1);
-    new AI("AI 3號", troop_2);
-    new AI("AI 4號", troop_2);
+    new AI("AI 1號", troop_2);
+    // new AI("AI 2號", troop_1);
+    // new AI("AI 3號", troop_2);
+    // new AI("AI 4號", troop_2);
   }
 
-  // FIXME: 史萊姆不會在當回合行動
   public async startRound(): Promise<void> {
-    for (const troop of this.troops) {
-      const alive_roles = troop.getAliveRole();
-      for (const role of alive_roles) {
-        role.startRround();
-        await role.action();
-        if (this.isGameOver()) {
-          return;
-        }
+    let now_player: Role | null = this.getNextPlayer(null);
+
+    while (now_player) {
+      now_player.startRround();
+      await now_player.action();
+
+      if (this.isGameOver()) {
+        return;
       }
+
+      now_player = this.getNextPlayer(now_player);
     }
+
     return await this.startRound();
   }
 
@@ -37,6 +39,11 @@ export class Game {
   public addTroop(troop: Troop) {
     this.troops.push(troop);
     return;
+  }
+
+  public getNextTroop(troop: Troop) {
+    const index = this.troops.indexOf(troop);
+    return this.troops[index + 1];
   }
 
   private isGameOver() {
@@ -53,6 +60,22 @@ export class Game {
     return false;
   }
 
+  private getNextPlayer(now_player: Role | null): Role | null {
+    let next_player: Role | null;
+
+    if (now_player) {
+      next_player = now_player.troop.getNextPlayer(now_player);
+    } else {
+      next_player = this.troops[0]?.roles[0] || null;
+    }
+
+    if (next_player && next_player.hp <= 0) {
+      return this.getNextPlayer(next_player);
+    }
+
+    return next_player;
+  }
+
   get troopAmount() {
     return this.troops.length;
   }
@@ -61,7 +84,7 @@ export class Game {
 export class Troop {
   private _id: number;
   private _name: string;
-  private roles: Role[] = [];
+  private _roles: Role[] = [];
   private _game: Game;
 
   constructor(name: string, game: Game) {
@@ -72,12 +95,12 @@ export class Troop {
   }
 
   public addRole(role: Role) {
-    this.roles.push(role);
+    this._roles.push(role);
     return;
   }
 
   public getAliveRole() {
-    return this.roles.filter((role) => role.hp > 0);
+    return this._roles.filter((role) => role.hp > 0);
   }
 
   public getAlly(role: Role) {
@@ -93,6 +116,19 @@ export class Troop {
     return result;
   }
 
+  public getNextPlayer(now_player: Role): Role | null {
+    const alive_role = this.getAliveRole();
+    const index = alive_role.indexOf(now_player);
+    let next_player: Role | null = alive_role[index + 1];
+
+    if (!next_player) {
+      const troop = this._game.getNextTroop(this);
+      next_player = troop?.getAliveRole()[0] || null;
+    }
+
+    return next_player;
+  }
+
   get name() {
     return this._name;
   }
@@ -103,5 +139,9 @@ export class Troop {
 
   get game() {
     return this._game;
+  }
+
+  get roles() {
+    return this._roles;
   }
 }
